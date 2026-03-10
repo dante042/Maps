@@ -36,8 +36,7 @@ const worldLayer=document.getElementById('worldLayer'),guidesG=document.getEleme
 let particles=[],raf=0,projectionFn=(lon,lat)=>[((lon+180)/360)*W,((90-lat)/180)*H];
 
 const maxRef=Math.max(...flowRows.map(r=>r[2]));
-const REFUGEES_PER_PARTICLE=28000;
-const MAX_PARTICLES=1600;
+const REFUGEES_PER_PARTICLE=10000;
 const particleCount=(v)=>Math.max(1,Math.round(v/REFUGEES_PER_PARTICLE));
 const lineWidth=(v)=>0.35+3.2*(v/maxRef);
 window.flowRows=flowRows;
@@ -49,7 +48,7 @@ const top10ByOrigin = new Map(Object.keys(originMeta).map(k=>[k,new Set(
 function quadMeta(a,b,cv=0.16){const mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2,dx=b[0]-a[0],dy=b[1]-a[1],nx=-dy*cv,ny=dx*cv;return{d:`M${a[0].toFixed(1)} ${a[1].toFixed(1)} Q${(mx+nx).toFixed(1)} ${(my+ny).toFixed(1)} ${b[0].toFixed(1)} ${b[1].toFixed(1)}`,c:[mx+nx,my+ny]};}
 function pointOnQuad(p0,c,p1,t){const mt=1-t;return[mt*mt*p0[0]+2*mt*t*c[0]+t*t*p1[0],mt*mt*p0[1]+2*mt*t*c[1]+t*t*p1[1]];}
 function clearFlows(){guidesG.innerHTML='';nodesG.innerHTML='';labelsG.innerHTML='';particlesG.innerHTML='';particles=[];if(raf)cancelAnimationFrame(raf)}
-function animate(now){if(!animate.prev)animate.prev=now;const dt=Math.min(32,now-animate.prev);animate.prev=now;for(const p of particles){p.t=(p.t+p.speed*dt)%1;const[x,y]=pointOnQuad(p.p0,p.c,p.p1,p.t);p.el.setAttribute('cx',x.toFixed(2));p.el.setAttribute('cy',y.toFixed(2));p.el.setAttribute('opacity',(0.5+0.4*Math.sin((p.t*6.28)+now*0.0025)).toFixed(2));}raf=requestAnimationFrame(animate)}
+function animate(now){if(!animate.prev)animate.prev=now;const dt=Math.min(40,now-animate.prev);animate.prev=now;for(const p of particles){p.t=(p.t+p.speed*dt)%1;const[x,y]=pointOnQuad(p.p0,p.c,p.p1,p.t);p.el.setAttribute('cx',x.toFixed(2));p.el.setAttribute('cy',y.toFixed(2));p.el.setAttribute('opacity',(0.45+0.45*Math.sin((p.t*6.28)+now*0.002)).toFixed(2));}raf=requestAnimationFrame(animate)}
 
 function urbanTargets(baseLon, baseLat, lanes, seed){
   const out=[];
@@ -63,7 +62,6 @@ function urbanTargets(baseLon, baseLat, lanes, seed){
 
 function renderFlows(){
   clearFlows();
-  let createdParticles=0;
   Object.values(originMeta).forEach(o=>{const[x,y]=projectionFn(o.lon,o.lat);const n=document.createElementNS(svgNS,'circle');n.setAttribute('class','origin');n.setAttribute('cx',x);n.setAttribute('cy',y);n.setAttribute('r',4.8);n.setAttribute('stroke',o.color);nodesG.appendChild(n);const l=document.createElementNS(svgNS,'text');l.setAttribute('class','label');l.setAttribute('x',x+8);l.setAttribute('y',y-8);l.textContent=o.name;labelsG.appendChild(l)});
 
   flowRows.forEach((r,idx)=>{
@@ -78,9 +76,8 @@ function renderFlows(){
       const {d:path,c}=quadMeta(s,e,0.08+((idx+li)%6)*0.025);
       const g=document.createElementNS(svgNS,'path');g.setAttribute('class','flow-guide');g.setAttribute('d',path);g.setAttribute('stroke',o.color);g.setAttribute('stroke-width',lineWidth(laneVal).toFixed(2));guidesG.appendChild(g);
       const dn=document.createElementNS(svgNS,'circle');dn.setAttribute('class','dest');dn.setAttribute('cx',e[0]);dn.setAttribute('cy',e[1]);dn.setAttribute('r',Math.max(1.2,lineWidth(laneVal)*0.8));nodesG.appendChild(dn);
-      const count=Math.min(particleCount(laneVal),Math.max(0,MAX_PARTICLES-createdParticles));
-      for(let i=0;i<count;i++){const p=document.createElementNS(svgNS,'circle');p.setAttribute('class','particle');p.setAttribute('r',1.15);p.setAttribute('fill',o.color);particlesG.appendChild(p);particles.push({el:p,p0:s,c,p1:e,t:Math.random(),speed:(0.0003+(laneVal/maxRef)*0.00055)*(0.7+Math.random()*0.8)});}
-      createdParticles+=count;
+      const count=particleCount(laneVal);
+      for(let i=0;i<count;i++){const p=document.createElementNS(svgNS,'circle');p.setAttribute('class','particle');p.setAttribute('r',1.15);p.setAttribute('fill',o.color);particlesG.appendChild(p);particles.push({el:p,p0:s,c,p1:e,t:Math.random(),speed:(0.00018+(laneVal/maxRef)*0.00042)*(0.7+Math.random()*0.8)});}
     });
   });
 
